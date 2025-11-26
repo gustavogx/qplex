@@ -26,15 +26,15 @@ namespace qplex {
 		/************************************************
 			Forward declaration
 		*************************************************/
-		
+
 		template <std::floating_point FloatType>
 		class Complex;
-		
+
 		/************************************************
 			ComplexView
 			Treat a 2-element (or strided) array as a complex number.
 		*************************************************/
-		
+
 		template <std::floating_point FloatType, uint32_t Stride = 1>
 		class ComplexView {
 		public:
@@ -42,7 +42,7 @@ namespace qplex {
 			~ComplexView() { DESTRUCTED }
 				ComplexView(ComplexView&& other) = default;
 				ComplexView(const ComplexView& other) = default;
-			
+
 			inline FloatType& Re() { return mData[0]; }
 			inline FloatType& Im() { return mData[Stride]; }
 			inline const FloatType& Re() const { return mData[0]; }
@@ -164,14 +164,14 @@ namespace qplex {
 			Complex(const std::list<FloatType>& data) : mData{data[0], data[1]} { CONSTRUCTED }
 			Complex(const std::array<FloatType, 2>& data) : mData{data[0], data[1]} { CONSTRUCTED }
 			Complex(const std::complex<FloatType>& other) : mData{other.real(), other.imag()} { CONSTRUCTED }
-			
+
 			Complex(const Complex<FloatType>& data) : mData{data.Re(), data.Im()} { CONSTRUCTED }
 			Complex(Complex<FloatType>&& data) : mData{data.Re(), data.Im()} { MOVED }
 			~Complex() { DESTRUCTED }
 
-					
+
 			operator std::complex<FloatType>() const { return std::complex<FloatType>{Re(), Im()}; }
-			
+
 
 			inline FloatType& Re() { return mData[0]; }
 			inline FloatType& Im() { return mData[1]; }
@@ -179,7 +179,7 @@ namespace qplex {
 			inline const FloatType& Im() const { return mData[1]; }
 
 			FloatType Mag2() const { return Re() * Re() + Im() * Im(); }
-			
+
 			FloatType Mag() const {
 				using std::sqrt;
 				return sqrt(Mag2());
@@ -262,12 +262,12 @@ namespace qplex {
 				os << c.Re() << " + " << c.Im() << "i";
 				return os;
 			}
-		
+
 			private:
 			FloatType mData[2];
 		};
 
-				
+
 		namespace ImaginaryUnit {
 			inline Complex<double> operator""_i(long double im)
 			{
@@ -371,39 +371,67 @@ namespace qplex {
 			}
 
 		/************************************************
-			Math Operations		
+			Math Operations
 		*************************************************/
 		// Low-level backend declarations used by MathHelper implementations.
 		namespace backend {
 			namespace elementwise {
 				template <std::floating_point FloatType, uint32_t BufferSize>
 				inline void AssignAdd(FloatType *thisOne, const FloatType *otherOne);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void AssignAdd(FloatType *thisOne, const FloatType *otherOne);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void Addition(FloatType *result, const FloatType *thisOne, const FloatType *otherOne);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void AssignSub(FloatType *thisOne, const FloatType *otherOne);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void Subtraction(FloatType *result, const FloatType *thisOne, const FloatType *otherOne);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void AssignScalarMult(FloatType *thisOne, const FloatType &scalar);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void ScalarMultiplication(FloatType *result, const FloatType *thisOne, const FloatType &scalar);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void AssignScalarDiv(FloatType *thisOne, const FloatType &scalar);
+
+				template <std::floating_point FloatType, uint32_t BufferSize>
+				inline void ScalarDivision(FloatType *result, const FloatType *thisOne, const FloatType &scalar);
+
 			}
+
+
+
 		}
 		namespace MathHelper {
-		
+
 			template <std::floating_point FloatType, uint32_t Dimension>
 			inline void AssignAdd(FloatType *thisOne, const FloatType *otherOne) {
 					std::transform(thisOne,
-					               thisOne + 2 * Dimension * Dimension,
-					               otherOne,
-					               thisOne,
-					               std::plus<>{});
+								   thisOne + 2 * Dimension * Dimension,
+								   otherOne,
+								   thisOne,
+								   std::plus<>{});
 			}
 
-	
+
 				template <std::floating_point FloatType, uint32_t Dimension>
-				inline void Addition(FloatType *result, const FloatType *left, const FloatType *right) {						
+				inline void Addition(FloatType *result, const FloatType *left, const FloatType *right) {
 					std::transform(left, left + Dimension*Dimension, right, result, std::plus<>{});
 				}
 
 				template <std::floating_point FloatType, uint32_t Dimension>
-				inline void AssignSubtract(FloatType *thisOne, const FloatType *otherOne) {				
+				inline void AssignSubtract(FloatType *thisOne, const FloatType *otherOne) {
 					std::transform(thisOne,
-					               thisOne + 2 * Dimension * Dimension,
-					               otherOne,
-					               thisOne,
-					               std::minus<>{});
+								   thisOne + 2 * Dimension * Dimension,
+								   otherOne,
+								   thisOne,
+								   std::minus<>{});
 				}
 
 				template <std::floating_point FloatType, uint32_t Dimension>
@@ -420,11 +448,11 @@ namespace qplex {
 						// using a cache-friendly i-k-j loop ordering.
 						constexpr uint32_t N = Dimension;
 						constexpr uint32_t kSize = N * N;
-						
+
 						// Zero the output once; the compiler can usually turn this into
 						// an efficient memset.
 						std::fill_n(result, kSize, FloatType{});
-						
+
 						// Standard triple-loop GEMM with inner-most j loop to keep
 						// accesses to both B's row and C's row contiguous.
 						for (uint32_t i = 0; i < N; ++i) {
@@ -453,15 +481,15 @@ namespace qplex {
 					constexpr uint32_t kRowSpan = 2*N;
 					constexpr uint32_t kBufferSize = 2*N*N;
 					using View = ComplexView<FloatType, Dimension>;
-					
-					
+
+
 					FloatType result[kBufferSize]{};
-					
+
 					for (uint32_t i = 0; i < N; ++i) {
 						for (uint32_t j = 0; j < N; ++j) {
 							FloatType accRe = FloatType{};
 							FloatType accIm = FloatType{};
-							
+
 							for (uint32_t k = 0; k < N; ++k) {
 								// A(i, k)
 								FloatType* aBase = thisOne + i * kRowSpan + k;
@@ -469,17 +497,17 @@ namespace qplex {
 								// B(k, j)
 								FloatType* bBase = const_cast<FloatType*>(otherOne) + k * kRowSpan + j;
 								View b{bBase};
-								
+
 								auto aRe = a.Re();
 								auto aIm = a.Im();
 								auto bRe = b.Re();
 								auto bIm = b.Im();
-								
+
 								// acc += a * b (complex multiply-add)
 								accRe += aRe * bRe - aIm * bIm;
 								accIm += aRe * bIm + aIm * bRe;
 							}
-							
+
 							// Store into C(i, j) in the result buffer.
 							FloatType* cBase = result + i * kRowSpan + j;
 							View c{cBase};
@@ -487,7 +515,7 @@ namespace qplex {
 							c.Im() = accIm;
 						}
 					}
-					
+
 					std::copy(result, result + kBufferSize, thisOne);
 			}
 
@@ -570,29 +598,29 @@ namespace qplex {
 					}
 				}
 
-		
+
 	}
 	/************************************************
-		ComplexMatrix		
+		ComplexMatrix
 	*************************************************/
-			
+
 	template <std::floating_point FloatType, uint32_t Dimension>
 	class Matrix {
-		
+
 		public:
 
 			Matrix() { CONSTRUCTED }
-			
+
 			Matrix(const Matrix& other) {
 				std::copy(other.mData, other.mData + kBufferSize, mData);
 				COPIED
 			}
-			
+
 			Matrix(Matrix&& other) noexcept {
 				std::move(other.mData, other.mData + kBufferSize, mData);
 				MOVED
 			}
-			
+
 			~Matrix() { DESTRUCTED }
 
 			inline ComplexView<FloatType,Dimension> operator[](uint32_t index) {
@@ -620,7 +648,7 @@ namespace qplex {
 				}
 
 			constexpr auto GetN() const { return Dimension; }
-			
+
 			void Print() const {
 				for (uint32_t row = 0; row < Dimension; ++row) {
 					for (uint32_t col = 0; col < Dimension; ++col) {
@@ -654,7 +682,7 @@ namespace qplex {
 				MathHelper::AssignMultiply3M<FloatType, Dimension>(mData, other.mData);
 				return *this;
 			}
-			
+
 			inline friend std::ostream& operator<<(std::ostream& os, const Matrix& m) {
 				for (uint32_t row = 0; row < Dimension; ++row) {
 					for (uint32_t col = 0; col < Dimension; ++col) {
@@ -689,59 +717,125 @@ namespace qplex {
 	}
 
 	namespace backend {
-		
+
 		namespace elementwise {
-	
+
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void AssignAdd(FloatType *thisOne, const FloatType *otherOne) 
+			inline void AssignAdd(FloatType *thisOne, const FloatType *otherOne)
 			{
 				std::transform(thisOne, thisOne+BufferSize, otherOne, thisOne, std::plus<>{});
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void Addition(FloatType *result, const FloatType *thisOne, const FloatType *otherOne) 
+			inline void Addition(FloatType *result, const FloatType *thisOne, const FloatType *otherOne)
 			{
 				std::transform(thisOne, thisOne+BufferSize, otherOne, result, std::plus<>{});
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void AssignSub(FloatType *thisOne, const FloatType *otherOne) 
+			inline void AssignSub(FloatType *thisOne, const FloatType *otherOne)
 			{
 				std::transform(thisOne, thisOne+BufferSize, otherOne, thisOne, std::minus<>{});
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void Subtraction(FloatType *result, const FloatType *thisOne, const FloatType *otherOne) 
+			inline void Subtraction(FloatType *result, const FloatType *thisOne, const FloatType *otherOne)
 			{
 				std::transform(thisOne, thisOne+BufferSize, otherOne, result, std::minus<>{});
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void AssignScalarMult(FloatType *thisOne, const FloatType &scalar) 
+			inline void AssignScalarMult(FloatType *thisOne, const FloatType &scalar)
 			{
 				std::transform(thisOne, thisOne + BufferSize, thisOne,
-				               [scalar](FloatType x) { return x * scalar; });
+							   [scalar](FloatType x) { return x * scalar; });
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void ScalarMultiplication(FloatType *result, const FloatType *thisOne, const FloatType &scalar) 
-			{				
+			inline void ScalarMultiplication(FloatType *result, const FloatType *thisOne, const FloatType &scalar)
+			{
 				std::transform(thisOne, thisOne + BufferSize, result,
-				               [scalar](FloatType x) { return x*scalar; });
+							   [scalar](FloatType x) { return x*scalar; });
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void AssignScalarDiv(FloatType *thisOne, const FloatType &scalar) 
+			inline void AssignScalarDiv(FloatType *thisOne, const FloatType &scalar)
 			{
 				std::transform(thisOne, thisOne + BufferSize, thisOne,
-				               [scalar](FloatType x) { return x/scalar; });
+							   [scalar](FloatType x) { return x/scalar; });
 			}
 
 			template <std::floating_point FloatType, uint32_t BufferSize>
-			inline void ScalarDivision(FloatType *result, const FloatType *thisOne, const FloatType &scalar) 
+			inline void ScalarDivision(FloatType *result, const FloatType *thisOne, const FloatType &scalar)
 			{
 				std::transform(thisOne, thisOne + BufferSize, result,
-				               [scalar](FloatType x) { return x/scalar; });
+							   [scalar](FloatType x) { return x/scalar; });
+			}
+
+			template <std::floating_point FloatType, uint32_t N>
+			inline void MultiplyAsRealRowMajor(FloatType *result, const FloatType *left, const FloatType *right)
+			{
+				constexpr uint32_t BufferSize = N*N;
+				std::fill_n(result, BufferSize, FloatType{});
+
+				for (uint32_t i=0; i<N; ++i) {
+					FloatType* cRow = result+i*N;
+					for (uint32_t k=0; k<N; ++k) {
+						const FloatType a = left[i*N+k];
+						const FloatType* bRow = right+k*N;
+
+						uint32_t j = 0;
+						for (; j+3<N; j+=4) {
+							cRow[j+0] += a*bRow[j+0];
+							cRow[j+1] += a*bRow[j+1];
+							cRow[j+2] += a*bRow[j+2];
+							cRow[j+3] += a*bRow[j+3];
+						}
+
+						for (; j<N; ++j) cRow[j] += a*bRow[j];
+					}
+				}
+			}
+
+			template <std::floating_point FloatType, uint32_t N>
+			inline void MultiplyAsComplexRowMajorPitch1(FloatType *result, const FloatType *left, const FloatType *right)
+			{
+				constexpr uint32_t BufferSize = 2*N*N;
+				std::fill_n(result, BufferSize, FloatType{});
+
+					for (uint32_t i = 0; i < N; ++i) {
+						FloatType* cRow = result + 2 * i * N;
+						for (uint32_t k = 0; k < N; ++k) {
+							const uint32_t aIndex = 2 * (i * N + k);
+							const FloatType aRe = left[aIndex + 0];
+							const FloatType aIm = left[aIndex + 1];
+
+							const FloatType* bRow = right + 2 * k * N;
+
+							auto complexMult = [bRow,cRow,aRe,aIm](const uint32_t &j){
+								uint32_t idx = 2*j;
+								FloatType  bRe = bRow[idx+0];
+								FloatType  bIm = bRow[idx+1];
+								FloatType& cRe = cRow[idx+0];
+								FloatType& cIm = cRow[idx+1];
+								cRe += aRe * bRe - aIm * bIm;
+								cIm += aRe * bIm + aIm * bRe;
+							};
+
+							uint32_t j = 0;
+							for (; j + 3 < N; j += 4) {
+								// j + 0
+								complexMult(j+0);
+								complexMult(j+1);
+								complexMult(j+2);
+								complexMult(j+3);
+							}
+
+							for (; j < N; ++j) complexMult(j);
+						}
+					}
+
+
 			}
 
 		}
