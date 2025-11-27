@@ -771,7 +771,10 @@ namespace qplex {
 				std::transform(thisOne, thisOne + BufferSize, result,
 							   [scalar](FloatType x) { return x/scalar; });
 			}
+		}
 
+		namespace matrix {
+			
 			template <std::floating_point FloatType, uint32_t N>
 			inline void MultiplyAsRealRowMajor(FloatType *result, const FloatType *left, const FloatType *right)
 			{
@@ -843,9 +846,6 @@ namespace qplex {
 												   const FloatType *left,
 												   const FloatType *right)
 				{
-					// Layout per row r (0-based):
-					//   [Re(r,0) .. Re(r,N-1), Im(r,0) .. Im(r,N-1)]
-					// so Re is at offset (2*N*r + c) and Im at (2*N*r + N + c).
 					constexpr uint32_t BufferSize = 2 * N * N;
 					std::fill_n(result, BufferSize, FloatType{});
 				
@@ -858,10 +858,8 @@ namespace qplex {
 							const FloatType *bRow = right + 2 * N * k;
 							
 							auto complexMult = [bRow, cRow, aRe, aIm](const uint32_t &j) {
-								// B(k,j): bRe at bRow[j], bIm at bRow[N + j]
 								FloatType  bRe = bRow[j];
 								FloatType  bIm = bRow[N + j];
-								// C(i,j): cRe at cRow[j], cIm at cRow[N + j]
 								FloatType &cRe = cRow[j];
 								FloatType &cIm = cRow[N + j];
 								cRe += aRe * bRe - aIm * bIm;
