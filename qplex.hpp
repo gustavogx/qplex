@@ -158,114 +158,114 @@ namespace qplex {
 	*************************************************/
 
 	template <std::floating_point FloatType>
-			class Complex {
-				public:
-					Complex(const FloatType& re = FloatType{}, const FloatType& im = FloatType{}) : mData{re, im} { CONSTRUCTED }
-			Complex(const std::list<FloatType>& data) : mData{data[0], data[1]} { CONSTRUCTED }
-			Complex(const std::array<FloatType, 2>& data) : mData{data[0], data[1]} { CONSTRUCTED }
-			Complex(const std::complex<FloatType>& other) : mData{other.real(), other.imag()} { CONSTRUCTED }
+		class Complex {
+			public:
+				Complex(const FloatType& re = FloatType{}, const FloatType& im = FloatType{}) : mData{re, im} { CONSTRUCTED }
+		Complex(const std::list<FloatType>& data) : mData{data[0], data[1]} { CONSTRUCTED }
+		Complex(const std::array<FloatType, 2>& data) : mData{data[0], data[1]} { CONSTRUCTED }
+		Complex(const std::complex<FloatType>& other) : mData{other.real(), other.imag()} { CONSTRUCTED }
 
-			Complex(const Complex<FloatType>& data) : mData{data.Re(), data.Im()} { CONSTRUCTED }
-			Complex(Complex<FloatType>&& data) : mData{data.Re(), data.Im()} { MOVED }
-			~Complex() { DESTRUCTED }
-
-
-			operator std::complex<FloatType>() const { return std::complex<FloatType>{Re(), Im()}; }
+		Complex(const Complex<FloatType>& data) : mData{data.Re(), data.Im()} { CONSTRUCTED }
+		Complex(Complex<FloatType>&& data) : mData{data.Re(), data.Im()} { MOVED }
+		~Complex() { DESTRUCTED }
 
 
-			inline FloatType& Re() { return mData[0]; }
-			inline FloatType& Im() { return mData[1]; }
-			inline const FloatType& Re() const { return mData[0]; }
-			inline const FloatType& Im() const { return mData[1]; }
+		operator std::complex<FloatType>() const { return std::complex<FloatType>{Re(), Im()}; }
 
-			FloatType Mag2() const { return Re() * Re() + Im() * Im(); }
 
-			FloatType Mag() const {
-				using std::sqrt;
-				return sqrt(Mag2());
-			}
+		inline FloatType& Re() { return mData[0]; }
+		inline FloatType& Im() { return mData[1]; }
+		inline const FloatType& Re() const { return mData[0]; }
+		inline const FloatType& Im() const { return mData[1]; }
 
-			FloatType Arg() const {
-				using std::atan2;
-				return atan2(Im(), Re());
-			}
+		FloatType Mag2() const { return Re() * Re() + Im() * Im(); }
 
-			inline Complex& operator=(const Complex& other) {
-				Re() = other.Re();
-				Im() = other.Im();
-				return *this;
-			}
+		FloatType Mag() const {
+			using std::sqrt;
+			return sqrt(Mag2());
+		}
 
-			inline Complex& operator!=(const Complex& other) {
-				Re() =  other.Re();
-				Im() = -other.Im();
-				return *this;
-			}
+		FloatType Arg() const {
+			using std::atan2;
+			return atan2(Im(), Re());
+		}
 
-			inline Complex& operator+=(const Complex& other) {
-				Re() += other.Re();
-				Im() += other.Im();
-				return *this;
-			}
+		inline Complex& operator=(const Complex& other) {
+			Re() = other.Re();
+			Im() = other.Im();
+			return *this;
+		}
 
-			inline Complex& operator-=(const Complex& other) {
-				Re() -= other.Re();
-				Im() -= other.Im();
-				return *this;
-			}
+		inline Complex& operator!=(const Complex& other) {
+			Re() =  other.Re();
+			Im() = -other.Im();
+			return *this;
+		}
 
-			inline Complex& operator*=(const Complex& other) {
-				auto re = Re();
-				auto im = Im();
-				auto otherRe = other.Re();
-				auto otherIm = other.Im();
-				Re() = re * otherRe - im * otherIm;
-				Im() = re * otherIm + im * otherRe;
-				return *this;
-			}
+		inline Complex& operator+=(const Complex& other) {
+			Re() += other.Re();
+			Im() += other.Im();
+			return *this;
+		}
 
-			inline Complex& operator/=(const Complex& other) {
-				auto re = Re();
-				auto im = Im();
-				auto otherRe = other.Re();
-				auto otherIm = other.Im();
-				auto mag = otherRe * otherRe + otherIm * otherIm;
-				Re() = (re * otherRe + im * otherIm) / mag;
-				Im() = (im * otherRe - re * otherIm) / mag;
-				return *this;
-			}
+		inline Complex& operator-=(const Complex& other) {
+			Re() -= other.Re();
+			Im() -= other.Im();
+			return *this;
+		}
 
-			// compound ops with scalar, mirroring ComplexView semantics
-			inline Complex& operator+=(const FloatType& other) {
-				Re() += other;
-				return *this;
-			}
+		inline Complex& operator*=(const Complex& other) {
+			auto re = Re();
+			auto im = Im();
+			auto otherRe = other.Re();
+			auto otherIm = other.Im();
+			Re() = re * otherRe - im * otherIm;
+			Im() = re * otherIm + im * otherRe;
+			return *this;
+		}
 
-			inline Complex& operator-=(const FloatType& other) {
-				Re() -= other;
-				return *this;
-			}
+		inline Complex& operator/=(const Complex& other) {
+			auto re = Re();
+			auto im = Im();
+			auto otherRe = other.Re();
+			auto otherIm = other.Im();
+			auto mag = otherRe * otherRe + otherIm * otherIm;
+			Re() = (re * otherRe + im * otherIm) / mag;
+			Im() = (im * otherRe - re * otherIm) / mag;
+			return *this;
+		}
 
-			inline Complex& operator*=(const FloatType& other) {
-				Re() *= other;
-				Im() *= other;
-				return *this;
-			}
+		// compound ops with scalar, mirroring ComplexView semantics
+		inline Complex& operator+=(const FloatType& other) {
+			Re() += other;
+			return *this;
+		}
 
-			inline Complex& operator/=(const FloatType& other) {
-				Re() /= other;
-				Im() /= other;
-				return *this;
-			}
+		inline Complex& operator-=(const FloatType& other) {
+			Re() -= other;
+			return *this;
+		}
 
-			inline friend std::ostream& operator<<(std::ostream& os, const Complex& c) {
-				os << c.Re() << " + " << c.Im() << "i";
-				return os;
-			}
+		inline Complex& operator*=(const FloatType& other) {
+			Re() *= other;
+			Im() *= other;
+			return *this;
+		}
 
-			private:
-			FloatType mData[2];
-		};
+		inline Complex& operator/=(const FloatType& other) {
+			Re() /= other;
+			Im() /= other;
+			return *this;
+		}
+
+		inline friend std::ostream& operator<<(std::ostream& os, const Complex& c) {
+			os << c.Re() << " + " << c.Im() << "i";
+			return os;
+		}
+
+		private:
+		FloatType mData[2];
+	};
 
 
 		namespace ImaginaryUnit {
@@ -837,6 +837,51 @@ namespace qplex {
 
 
 			}
+
+			template <std::floating_point FloatType, uint32_t N>
+				inline void MultiplyAsComplexRowMajorPitchN(FloatType *result,
+												   const FloatType *left,
+												   const FloatType *right)
+				{
+					// Layout per row r (0-based):
+					//   [Re(r,0) .. Re(r,N-1), Im(r,0) .. Im(r,N-1)]
+					// so Re is at offset (2*N*r + c) and Im at (2*N*r + N + c).
+					constexpr uint32_t BufferSize = 2 * N * N;
+					std::fill_n(result, BufferSize, FloatType{});
+				
+					for (uint32_t i = 0; i < N; ++i) {
+						const FloatType *aRow = left  + 2 * N * i;
+						FloatType       *cRow = result + 2 * N * i;
+						for (uint32_t k = 0; k < N; ++k) {
+							const FloatType aRe = aRow[k];
+							const FloatType aIm = aRow[N + k];
+							const FloatType *bRow = right + 2 * N * k;
+							
+							auto complexMult = [bRow, cRow, aRe, aIm](const uint32_t &j) {
+								// B(k,j): bRe at bRow[j], bIm at bRow[N + j]
+								FloatType  bRe = bRow[j];
+								FloatType  bIm = bRow[N + j];
+								// C(i,j): cRe at cRow[j], cIm at cRow[N + j]
+								FloatType &cRe = cRow[j];
+								FloatType &cIm = cRow[N + j];
+								cRe += aRe * bRe - aIm * bIm;
+								cIm += aRe * bIm + aIm * bRe;
+							};
+							
+							uint32_t j = 0;
+							for (; j + 3 < N; j += 4) {
+								complexMult(j + 0);
+								complexMult(j + 1);
+								complexMult(j + 2);
+								complexMult(j + 3);
+							}
+							
+							for (; j < N; ++j) {
+								complexMult(j);
+							}
+						}
+					}
+				}
 
 		}
 	}
