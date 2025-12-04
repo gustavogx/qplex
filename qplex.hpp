@@ -730,8 +730,8 @@ namespace qplex {
 			
 			namespace algorithms {
 			
-				template <std::floating_point FloatType, uint32_t N> 
-				inline void Inverse(FloatType *invertedOne, const FloatType *thisOne) {
+			template <std::floating_point FloatType, uint32_t N> 
+			inline void Inverse(FloatType *inverted, const FloatType *input) {
 
 			}
 		}
