@@ -8,19 +8,6 @@
 #include <algorithm>
 #include <iostream>
 
-#ifdef QPLEX_DEBUG
-	#include <iostream>
-	#define CONSTRUCTED std::cout << "Constructed " << this << std::endl;
-	#define DESTRUCTED std::cout << "Destructed " << this << std::endl;
-	#define COPIED std::cout << "Copied " << this << std::endl;
-	#define MOVED std::cout << "Moved " << this << std::endl;
-#else
-	#define CONSTRUCTED
-	#define DESTRUCTED
-	#define COPIED
-	#define MOVED
-#endif
-
 namespace qplex {
 
 		/************************************************
@@ -38,8 +25,8 @@ namespace qplex {
 		template <std::floating_point FloatType, uint32_t Stride = 1>
 		class ComplexView {
 		public:
-			ComplexView(FloatType* data) : mData{data} { CONSTRUCTED }
-			~ComplexView() { DESTRUCTED }
+			ComplexView(FloatType* data) : mData{data} {}
+			~ComplexView() {}
 				ComplexView(ComplexView&& other) = default;
 				ComplexView(const ComplexView& other) = default;
 
@@ -158,17 +145,19 @@ namespace qplex {
 	*************************************************/
 
 	template <std::floating_point FloatType>
-		class Complex {
-			public:
-				Complex(const FloatType& re = FloatType{}, const FloatType& im = FloatType{}) : mData{re, im} { CONSTRUCTED }
-		Complex(const std::list<FloatType>& data) : mData{data[0], data[1]} { CONSTRUCTED }
-		Complex(const std::array<FloatType, 2>& data) : mData{data[0], data[1]} { CONSTRUCTED }
-		Complex(const std::complex<FloatType>& other) : mData{other.real(), other.imag()} { CONSTRUCTED }
+	class Complex {
+		public:
+		Complex(const FloatType& re = FloatType{}, const FloatType& im = FloatType{}) : mData{re, im} {}
+		Complex(const std::list<FloatType>& data) : mData{data[0], data[1]} {}
+		Complex(const std::array<FloatType, 2>& data) : mData{data[0], data[1]} {}
+		Complex(const std::complex<FloatType>& other) : mData{other.real(), other.imag()} {}
 
-		Complex(const Complex<FloatType>& data) : mData{data.Re(), data.Im()} { CONSTRUCTED }
-		Complex(Complex<FloatType>&& data) : mData{data.Re(), data.Im()} { MOVED }
-		~Complex() { DESTRUCTED }
+		Complex(const Complex<FloatType>& data) : mData{data.Re(), data.Im()} {}
+		Complex(Complex<FloatType>&& data) : mData{data.Re(), data.Im()} {  }
+		~Complex() {}
 
+		static inline Complex const GetAs(const FloatType* data) { return Complex{data[0], data[1]}; }
+		static inline auto const MultiplyAs(const ComplexView<FloatType>& left, const ComplexView<FloatType>& right) { return {left[0]*right[0] - left[1]*right[1], left[0]*right[1] + left[1]*right[0]}; }
 
 		operator std::complex<FloatType>() const { return std::complex<FloatType>{Re(), Im()}; }
 
@@ -230,8 +219,8 @@ namespace qplex {
 			auto otherRe = other.Re();
 			auto otherIm = other.Im();
 			auto mag = otherRe * otherRe + otherIm * otherIm;
-			Re() = (re * otherRe + im * otherIm) / mag;
-			Im() = (im * otherRe - re * otherIm) / mag;
+			Re() = (re*otherRe + im*otherIm)/mag;
+			Im() = (im*otherRe - re*otherIm)/mag;
 			return *this;
 		}
 
@@ -410,8 +399,10 @@ namespace qplex {
 
 			}
 			namespace matrixwise {
+				
 				template <std::floating_point FloatType, uint32_t Dimension>
-				inline void MultiplyAsComplexRowMajor(FloatType *result, const FloatType *left, const FloatType *right);
+				void MultiplyAsComplexRowMajor(FloatType *result, const FloatType *left, const FloatType *right);
+				
 				template <std::floating_point FloatType, uint32_t Dimension>
 				inline void MultiplyAsRealRowMajor(FloatType *result, const FloatType *left, const FloatType *right);
 			}
@@ -425,19 +416,19 @@ namespace qplex {
 
 			public:
 
-			Matrix() { CONSTRUCTED }
+			Matrix() {}
 
 			Matrix(const Matrix& other) {
 				std::copy(other.mData, other.mData + kBufferSize, mData);
-				COPIED
+				
 			}
 
 			Matrix(Matrix&& other) noexcept {
 				std::move(other.mData, other.mData + kBufferSize, mData);
-				MOVED
+				
 			}
 
-			~Matrix() { DESTRUCTED }
+			~Matrix() {}
 
 			inline ComplexView<FloatType,kBufferStride> operator[](uint32_t index) {
 				const uint32_t row = index / Dimension;
@@ -687,44 +678,51 @@ namespace qplex {
 				}
 			}
 
+			
 			template <std::floating_point FloatType, uint32_t N>
-			inline void MultiplyAsComplexRowMajor(FloatType *result, const FloatType *left, const FloatType *right)
+			inline void MultiplyAsComplexRowMajor(FloatType *result, const FloatType *left, const FloatType *right)			
 			{
-				constexpr uint32_t BufferSize = 2*N*N;
-				std::fill_n(result, BufferSize, FloatType{});
+				FloatType cRe = FloatType{};
+				FloatType cIm = FloatType{};
 
-					for (uint32_t i = 0; i < N; ++i) {
-						FloatType* cRow = result + 2*i*N;
-						for (uint32_t k = 0; k < N; ++k) {
-							const uint32_t aIndex = 2 * (i*N+k);
-							const FloatType aRe = left[aIndex + 0];
-							const FloatType aIm = left[aIndex + 1];
+				for (uint32_t i=0; i<N; ++i) for (uint32_t j=0; j<N; ++j) {
 
-							const FloatType* bRow = right + 2*k*N;
+					cRe = FloatType{};
+					cIm = FloatType{};
 
-							auto complexMult = [bRow,cRow,aRe,aIm](const uint32_t &j){
-								uint32_t idx = 2*j;
-								FloatType  bRe = bRow[idx+0];
-								FloatType  bIm = bRow[idx+1];
-								FloatType& cRe = cRow[idx+0];
-								FloatType& cIm = cRow[idx+1];
-								cRe += aRe*bRe - aIm*bIm;
-								cIm += aRe*bIm + aIm*bRe;
-							};
+					const FloatType*  aPtr = left +2*i*N;
+					const FloatType*  bPtr = right+2*j;
 
-							uint32_t j = 0;
-							for (; j + 3 < N; j += 4) {
-								complexMult(j+0);
-								complexMult(j+1);
-								complexMult(j+2);
-								complexMult(j+3);
-							}
+					uint32_t k=0;
+					for (; k+3 < N; k+=4) {
+						cRe += aPtr[0]*bPtr[0]-aPtr[1]*bPtr[1];
+						cIm += aPtr[0]*bPtr[1]+aPtr[1]*bPtr[0];
+						cRe += aPtr[3]*bPtr[1]-aPtr[3]*bPtr[2*N];
+						cIm += aPtr[3]*bPtr[2*N]+aPtr[3]*bPtr[1];
+						cRe += aPtr[4]*bPtr[4*N]-aPtr[5]*bPtr[4*N+1];
+						cIm += aPtr[4]*bPtr[4*N+1]+aPtr[5]*bPtr[4*N];
+						cRe += aPtr[6]*bPtr[6*N]-aPtr[7]*bPtr[6*N+1];
+						cIm += aPtr[6]*bPtr[6*N+1]+aPtr[7]*bPtr[6*N];
 
-							for (; j < N; ++j) complexMult(j);
-						}
+						aPtr += 8;
+						bPtr += 8*N;
 					}
-				}
 
+					for (; k < N; ++k) {
+						const FloatType aRe = aPtr[0], aIm = aPtr[1];
+						const FloatType bRe = bPtr[0], bIm = bPtr[1];
+						cRe += aRe*bRe-aIm*bIm;
+						cIm += aRe*bIm+aIm*bRe;
+						aPtr += 2;
+						bPtr += 2*N;
+					}
+
+					result[2*(i*N+j)]	= cRe;
+					result[2*(i*N+j)+1]	= cIm;
+				}
+				
+			}
+			
 
 			}
 			
@@ -733,7 +731,7 @@ namespace qplex {
 			template <std::floating_point FloatType, uint32_t N> 
 			inline void Inverse(FloatType *inverted, const FloatType *input) {
 
-			}
+				}
 		}
 	}
 }
